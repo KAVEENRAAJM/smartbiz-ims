@@ -3,11 +3,14 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
+
+const routes = require('./routes');
 
 const app = express();
 
 // Middlewares
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -20,9 +23,16 @@ const authLimiter = rateLimit({
 });
 app.use('/api/v1/auth', authLimiter);
 
-// Basic Route
-app.get('/', (req, res) => {
-  res.send('SmartBiz API is running');
+// ─── API Routes ───
+app.use('/api/v1', routes);
+
+// ─── Serve React Frontend (production) ───
+const clientDist = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientDist));
+
+// SPA catch-all: any non-API GET request serves index.html
+app.get('{*splat}', (req, res) => {
+  res.sendFile(path.join(clientDist, 'index.html'));
 });
 
 // Global Error Handler
